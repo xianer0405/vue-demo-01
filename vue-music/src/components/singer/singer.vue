@@ -1,6 +1,7 @@
 <template>
-  <div>
-    歌手页面
+  <div class="singer">
+    <listview :data="singers" @select="singerSelect"></listview>
+    <router-view></router-view>
   </div>
 </template>
 
@@ -8,6 +9,10 @@
   import {getSingers} from 'api/singer'
   import {ERR_OK} from "common/js/config"
   import Singer from 'common/js/singer'
+  import {mapMutations} from 'vuex'
+  import * as mutationsTypes from 'store/mutation-types'
+  import Listview from 'base/listview/listview'
+
   const HOT_NAME = "热门"
   const HOT_LEN = 10
 
@@ -18,49 +23,66 @@
       }
     },
     created() {
-      this._getSingers()
+      setTimeout(() => {
+        this._getSingers()
+      }, 1000)
     },
     methods: {
+      ...mapMutations({
+        setSinger: mutationsTypes.SET_SINGER
+      }),
+      singerSelect(singer) {
+        this.setSinger(singer)
+        this.$router.push(`/singer/${singer.id}`)
+      },
       _getSingers() {
         getSingers().then((res) => {
-          if(res.code === ERR_OK) {
-            this.singers = res.data.list
-            console.log(this._nomalizeSingerList(this.singers))
+          if (res.code === ERR_OK) {
+            this.singers = this._nomalizeSingerList(res.data.list)
           }
         })
       },
       _nomalizeSingerList(singers) {
         let m = new Map()
-        m.set(HOT_NAME, {'title':HOT_NAME, 'items':[]})
+        m.set(HOT_NAME, {'title': HOT_NAME, 'items': []})
         singers.forEach((item, index) => {
-          if(index < HOT_LEN) {
-            m.get(HOT_NAME).items.push(new Singer({id:item.Fsinger_mid,name:item.Fsinger_name}))
+          if (index < HOT_LEN) {
+            m.get(HOT_NAME).items.push(new Singer({id: item.Fsinger_mid, name: item.Fsinger_name}))
           } else {
-            if(!m.has(item.Findex)) {
-              m.set(item.Findex, {'title':item.Findex, 'items':[]})
+            if (!m.has(item.Findex)) {
+              m.set(item.Findex, {'title': item.Findex, 'items': []})
             }
-            m.get(item.Findex).items.push(new Singer({id:item.Fsinger_mid,name:item.Fsinger_name}))
+            m.get(item.Findex).items.push(new Singer({id: item.Fsinger_mid, name: item.Fsinger_name}))
           }
         })
+
+        /*转换singer数据的数据接口*/
         let hot = []
         let rest = []
-        for(let [key, val] of m) {
-          if(val.title.match(/[a-zA-Z]/)) {
+        for (let [key, val] of m) {
+          if (val.title.match(/[a-zA-Z]/)) {
             rest.push(val)
-          } else if(val.title === HOT_NAME) {
+          } else if (val.title === HOT_NAME) {
             hot.push(val)
           }
         }
-
-        rest.sort((a,b) => {
+        /*根据Findex生序排序*/
+        rest.sort((a, b) => {
           return a.title.charCodeAt(0) - b.title.charCodeAt(0)
         })
-        console.log([...hot, ...rest])
+        return [...hot, ...rest]
       }
+    },
+    components: {
+      Listview,
     }
   }
 </script>
 
 <style scoped lang="stylus" rel="stylesheet/stylus">
-
+  .singer
+    position: fixed
+    top: 88px
+    bottom: 0
+    width: 100%
 </style>
