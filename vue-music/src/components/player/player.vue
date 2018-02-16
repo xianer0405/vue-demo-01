@@ -43,7 +43,7 @@
           </div>
           <div class="operators">
             <div class="icon i-left">
-              <i class="icon-sequence"></i>
+              <i :class="modeIcon" @click="changeMode"></i>
             </div>
             <div class="icon i-left" :class="disableCls">
               <i @click.stop="prevSong" class="icon-prev"></i>
@@ -80,7 +80,7 @@
         </div>
       </div>
     </transition>
-    <audio ref="audio" :src="currentSong.url" @timeupdate="updateTime" @canplay="ready" @error="error"></audio>
+    <audio ref="audio" :src="currentSong.url" @ended="end" @timeupdate="updateTime" @canplay="ready" @error="error"></audio>
   </div>
 </template>
 
@@ -91,6 +91,8 @@
   import {prefixStyle} from 'common/js/dom'
   import ProgressBar from 'base/progress-bar/progress-bar'
   import ProgressCircle from 'base/progress-circle/progress-circle'
+  import {playMode} from 'common/js/config'
+  import {shuffle2} from "common/js/util"
 
   const transform = prefixStyle('transform')
 
@@ -105,6 +107,101 @@
       }
     },
     methods: {
+
+      prevSong() {//前进和后退，需要能循环切换
+        if (!this.songReady) {
+          return
+        }
+        let index = this.currentIndex - 1
+        if (index === -1) {
+          index = this.playlist.length - 1
+        }
+        this.setCurrentIndex(index)
+        if (!this.playingState) {
+          this.togglePlayingState()
+        }
+        this.songReady = false
+      },
+      nextSong() {
+        if (!this.songReady) {
+          return
+        }
+        let index = this.currentIndex + 1
+        if (index === this.playlist.length) {
+          index = 0
+        }
+        this.setCurrentIndex(index)
+        if (!this.playingState) {
+          this.togglePlayingState()
+        }
+        this.songReady = false
+      },
+      end() {
+        if(this.playMode === playMode.LOOP) {
+          this.$refs.audio.currentTime = 0
+          this.$refs.audio.play()
+        } else {
+          this.nextSong()
+        }
+      },
+      changeMode() {
+        let mode = (this.playMode + 1) % 3
+        this.setPlayMode(mode)
+        //如果是随机播放则shuffle seqlist->playlist
+        //如果是顺序播放则将playlist改为sequenceList
+        //保留当前index,提交index和playlist
+        let list = null
+        if(mode === playMode.RANDOM) {
+          list = shuffle2(this.sequenceList)
+        } else {
+          list = this.sequenceList
+        }
+        this.resetCurrentIndex(list)
+        this.setPlaylist(list)
+      },
+      resetCurrentIndex(list) {
+        let index = list.findIndex((item) => {
+          return item.id === this.currentSong.id
+        })
+        this.setCurrentIndex(index)
+      },
+      onProgressUpdate(percent) {
+        this.$refs.audio.currentTime = this.currentSong.duration * percent
+        if (!this.playingState) {
+          this.togglePlayingState()
+        }
+      },
+      updateTime(e) {
+        this.currentTime = e.target.currentTime
+      },
+      format(time) {
+        let minutes = time / 60 | 0
+        let seconds = this._padLeftZero(time % 60 | 0)
+        return `${minutes}:${seconds}`
+      },
+      _padLeftZero(str, n = 2) {
+        let len = str.toString().length
+        while (len < n) {
+          str = '0' + str
+          len++
+        }
+        return str
+      },
+      ready() {
+        this.songReady = true
+      },
+      error() {
+        this.songReady = true
+      },
+      ...mapMutations({
+          setFullScreen: mutationTypes.SET_FULL_SCREEN,
+          setPlayingState: mutationTypes.SET_PLAYING_STATE,
+          // switchSong: mutationTypes.SET_CURRENT_INDEX,
+          setPlayMode: mutationTypes.SET_PLAY_MODE,
+          setPlaylist: mutationTypes.SET_PLAYLIST,
+          setCurrentIndex: mutationTypes.SET_CURRENT_INDEX
+        }
+      ),
       enter(el, done) {
         const {x, y, scale} = this._getPosAndScale()
 
@@ -156,68 +253,6 @@
         }
         this.setPlayingState(!this.playingState)
       },
-      prevSong() {//前进和后退，需要能循环切换
-        if (!this.songReady) {
-          return
-        }
-        let index = this.currentIndex - 1
-        if (index === -1) {
-          index = this.playlist.length - 1
-        }
-        this.switchSong(index)
-        if (!this.playingState) {
-          this.togglePlayingState()
-        }
-        this.songReady = false
-      },
-      nextSong() {
-        if (!this.songReady) {
-          return
-        }
-        let index = this.currentIndex + 1
-        if (index === this.playlist.length) {
-          index = 0
-        }
-        this.switchSong(index)
-        if (!this.playingState) {
-          this.togglePlayingState()
-        }
-        this.songReady = false
-      },
-      onProgressUpdate(percent) {
-        this.$refs.audio.currentTime = this.currentSong.duration * percent
-        if (!this.playingState) {
-          this.togglePlayingState()
-        }
-      },
-      updateTime(e) {
-        this.currentTime = e.target.currentTime
-      },
-      format(time) {
-        let minutes = time / 60 | 0
-        let seconds = this._padLeftZero(time % 60 | 0)
-        return `${minutes}:${seconds}`
-      },
-      _padLeftZero(str, n = 2) {
-        let len = str.toString().length
-        while (len < n) {
-          str = '0' + str
-          len++
-        }
-        return str
-      },
-      ready() {
-        this.songReady = true
-      },
-      error() {
-        this.songReady = true
-      },
-      ...mapMutations({
-          setFullScreen: mutationTypes.SET_FULL_SCREEN,
-          setPlayingState: mutationTypes.SET_PLAYING_STATE,
-          switchSong: mutationTypes.SET_CURRENT_INDEX
-        }
-      ),
       _getPosAndScale() {
         const targetWidth = 40
         const paddingLeft = 40
@@ -228,6 +263,23 @@
         const x = -(window.innerWidth / 2 - paddingLeft)
         const y = window.innerHeight - paddingTop - width / 2 - paddingBottom
         return {x, y, scale}
+      }
+    },
+    watch: {
+      currentSong(newSong, oldSong) {
+        if(oldSong && newSong.id === oldSong.id) {
+          return
+        }
+        this.$nextTick(() => {
+          this.$refs.audio.src = newSong.url
+          this.$refs.audio.play()
+        })
+      },
+      playingState(newPlayingState) {
+        this.$nextTick(() => {
+          let audio = this.$refs.audio
+          newPlayingState ? audio.play() : audio.pause()
+        })
       }
     },
     computed: {
@@ -243,6 +295,9 @@
       miniIcon() {
         return this.playingState ? 'icon-pause-mini' : 'icon-play-mini'
       },
+      modeIcon() {
+        return this.playMode === playMode.SEQUENCE ? 'icon-sequence' : this.playMode === playMode.LOOP ? 'icon-loop' : 'icon-random'
+      },
       percent() {
         return this.currentTime / this.currentSong.duration
       },
@@ -252,22 +307,9 @@
         'currentSong',
         'playlist',
         'sequenceList',
-        'playingState'
+        'playingState',
+        'playMode'
       ]),
-    },
-    watch: {
-      currentSong(newSong) {
-        this.$nextTick(() => {
-          this.$refs.audio.src = newSong.url
-          this.$refs.audio.play()
-        })
-      },
-      playingState(newPlayingState) {
-        this.$nextTick(() => {
-          let audio = this.$refs.audio
-          newPlayingState ? audio.play() : audio.pause()
-        })
-      }
     },
     components: {
       ProgressBar,
