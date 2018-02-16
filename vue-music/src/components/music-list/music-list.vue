@@ -21,7 +21,7 @@
             class="list"
             ref="listEl">
       <div class="song-list-wrapper">
-        <song-list :songs="songs"></song-list>
+        <song-list @select="selectItem" :songs="songs"></song-list>
       </div>
       <div class="loading-container" v-show="!songs.length">
         <loading></loading>
@@ -34,6 +34,13 @@
   import Scroll from 'base/scroll/scroll'
   import SongList from 'base/song-list/song-list'
   import Loading from 'base/loading/loading'
+  import {prefixStyle} from 'common/js/dom'
+  import * as mutationTypes from '@/store/mutation-types'
+  import {mapActions} from 'vuex'
+
+  const RESERVED_HEIGHT = 40
+  const transform = prefixStyle('transform')
+  const backdrop = prefixStyle('backdrop-filter')
 
   export default {
     props: {
@@ -52,32 +59,64 @@
     },
     data() {
       return {
-        name: "music-list",
         scrollY: 0
       }
     },
     computed: {
       bgStyle() {
         // 需要通过计算属性设置背景图，因为使用样式无法获取到props中的bgImage选项值
-        return `background: url(${this.bgImage})`
+        return `background-image: url(${this.bgImage})`
       }
     },
     methods: {
-      /*hide() {
-        this.$emit('hide')
-      }*/
+      selectItem(item, index) {
+        console.log('music-list='+index)
+        this.selectPlay({
+          list: this.songs,
+          index
+        })
+      },
       back() {
         this.$router.back()
       },
       scroll(pos) {
         this.scrollY = pos.y
-      }
+      },
+      ...mapActions([
+        'selectPlay'
+      ])
     },
     watch: {
       scrollY(newY) {
         //newY向上滚动是负值，向下滚动是正值
         let translateY = Math.max(this.minTranslateY, newY)
+        let zIndex = 0
+        let scale = 1
+        let blur = 0
+        let bgImageHeight = 0
+        let bgImagePaddingTop = '70%'
+
+        const percent = (Math.abs(newY) / this.imageHeight)
+        if (newY > 0) {
+          scale = 1 + percent
+          zIndex = 10
+        } else {
+          blur = Math.min(20, percent * 20)
+        }
         this.$refs.layer.style.transform = `translate3d(0, ${translateY}px, 0)`
+        this.$refs.filter.style[backdrop] = `blur(${blur}px)`
+        if (newY < this.minTranslateY) {
+          zIndex = 10
+          this.$refs.bgImageEl.style.paddingTop = 0
+          this.$refs.bgImageEl.style.height = RESERVED_HEIGHT + 'px'
+          this.$refs.playBtn.style.display = 'none'
+        } else {
+          this.$refs.bgImageEl.style.paddingTop = bgImagePaddingTop
+          this.$refs.bgImageEl.style.height = bgImageHeight
+          this.$refs.playBtn.style.display = ''
+        }
+        this.$refs.bgImageEl.style.zIndex = zIndex
+        this.$refs.bgImageEl.style[transform] = `scale(${scale})`
       }
     },
     created() {
@@ -87,7 +126,7 @@
     mounted() {
       this.imageHeight = this.$refs.bgImageEl.clientHeight
       //命名为minXXX，是因为该值是负值
-      this.minTranslateY = - this.imageHeight + 40
+      this.minTranslateY = -this.imageHeight + RESERVED_HEIGHT
       this.$refs.listEl.$el.style.top = `${this.imageHeight}px`
     },
     components: {
@@ -99,6 +138,7 @@
 </script>
 
 <style scoped lang="stylus" rel="stylesheet/stylus">
+  /*只有在 stylus 里加了 ~，它才会通过 alias 去查找*/
   @import "~common/stylus/variable"
   @import "~common/stylus/mixin"
 
@@ -173,14 +213,12 @@
       position: relative
       height: 100%
       background: $color-background
-      z-index: 60
     .list
       position: fixed
       top: 0
       bottom: 0
       width: 100%
       background: $color-background
-      z-index:70
       /*overflow: hidden*/
       .song-list-wrapper
         padding: 20px 30px

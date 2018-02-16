@@ -11,3 +11,13 @@ export const options = {
 }
 
 export const ERR_OK = 0
+// export const playState = {
+//   PLAYING: 'PLAYING',
+//   PAUSE: 'PAUSE'
+// }
+
+export const playMode = {
+  SEQUENCE: 0,
+  LOOP: 1,
+  RANDOM: 2
+}

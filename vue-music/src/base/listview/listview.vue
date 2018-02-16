@@ -1,41 +1,3 @@
-<!--<template>
-  <scroll
-    class="listview"
-    :data="data"
-    :click="false"
-    :listen-scroll="listenScroll"
-    :probe-type="probeType"
-    @scroll="scrollEvtHandler"
-    ref="listview"
-  >
-    <ul>
-      <li class="list-group" v-for="group in data" ref="listGroup">
-        <h2 class="list-group-title">{{group.title}}</h2>
-        <ul>
-          <li @click="selectItem(item)" class="list-group-item" v-for="item in group.items">
-            <img width="50px" height="50px" class="avatar" v-lazy="item.avatar">
-            <span class="name">{{item.name}}</span>
-          </li>
-        </ul>
-      </li>
-    </ul>
-    <ul class="list-shortcut" @touchstart="onShortcutTouchStart" @touchmove.stop.prevent="onShortcutTouchMove">
-      <li v-for="(item, index) in shortcutList"
-          class="item"
-          :class="{'current': currentAnchorIndex === index}"
-          :data-index="index"
-      >
-        {{item}}
-      </li>
-    </ul>
-    <div class="list-fixed" v-show="fixedTitle" ref="fixed">
-      <div class="fixed-title">{{fixedTitle}}</div>
-    </div>
-    <div class="loading-container" v-show="!data.length">
-      <loading></loading>
-    </div>
-  </scroll>
-</template>-->
 <template>
   <scroll @scroll="scrollEvtHandler"
           :listen-scroll="listenScroll"
@@ -119,6 +81,7 @@
         this.$refs.listview.refresh()
       },
       scrollEvtHandler(pos) {
+        console.log(pos)
         this.scrollY = pos.y
       },
       _scrollTo(index) {

@@ -25,7 +25,7 @@
     created() {
       setTimeout(() => {
         this._getSingers()
-      }, 1000)
+      }, 300)
     },
     methods: {
       ...mapMutations({

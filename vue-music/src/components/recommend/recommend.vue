@@ -1,6 +1,11 @@
 <template>
   <div class="recommend">
-    <scroll ref="scroll" class="recommend-content" :data="discList">
+    <scroll @scroll="scroll"
+            ref="scroll"
+            :data="discList"
+            :probeType="probeType"
+            :listenScroll="listenScroll"
+            class="recommend-content">
       <div>
         <div v-if="recommends.length" class="slider-wrapper">
           <slider>
@@ -42,6 +47,8 @@
 
   export default {
     created() {
+      this.probeType = 3
+      this.listenScroll = true
       this._getRecommed()
       this._getDiscList()
     },
@@ -52,6 +59,12 @@
       }
     },
     methods: {
+      scroll(pos) {
+        console.log(pos)
+      },
+      imageLoad() {
+        this.$refs.scroll.refresh();
+      },
       _getRecommed() {
         getRecommend().then((res) => {
           if (res.code == ERR_OK) {
@@ -65,9 +78,6 @@
             this.discList = res.data.list
           }
         })
-      },
-      imageLoad() {
-        this.$refs.scroll.refresh();
       }
     },
     components: {
