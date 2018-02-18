@@ -81,7 +81,6 @@
         this.$refs.listview.refresh()
       },
       scrollEvtHandler(pos) {
-        console.log(pos)
         this.scrollY = pos.y
       },
       _scrollTo(index) {
@@ -95,7 +94,7 @@
         }
         this.scrollY = -this.listGroupItemHeightArr[index]
         let el = this.$refs.listGroup[index]
-        this.$refs.listview.scrollToElment(el, 0)
+        this.$refs.listview.scrollToElement(el, 0)
       },
       _calculateHeight() {//计算每个list-group元素的相对高度
         this.listGroupItemHeightArr = []

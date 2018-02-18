@@ -37,12 +37,14 @@
   import {prefixStyle} from 'common/js/dom'
   import * as mutationTypes from '@/store/mutation-types'
   import {mapActions} from 'vuex'
+  import {playlistMixin} from 'common/js/mixin'
 
   const RESERVED_HEIGHT = 40
   const transform = prefixStyle('transform')
   const backdrop = prefixStyle('backdrop-filter')
 
   export default {
+    mixins: [playlistMixin],
     props: {
       songs: {
         type: Array,
@@ -69,6 +71,11 @@
       }
     },
     methods: {
+      handlePlaylist(playlist) {
+        const bottom = playlist.length > 0 ? '60px' : ''
+        this.$refs.listEl.$el.style.bottom = bottom
+        this.$refs.listEl.refresh()
+      },
       selectItem(item, index) {
         this.selectPlay({
           list: this.songs,

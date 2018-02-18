@@ -1,5 +1,5 @@
 export const commonParams = {
-  g_tk: 5381,
+  g_tk: 107962675,
   inCharset: 'utf-8',
   outCharset: 'utf-8',
   notice: 0,
@@ -11,10 +11,6 @@ export const options = {
 }
 
 export const ERR_OK = 0
-// export const playState = {
-//   PLAYING: 'PLAYING',
-//   PAUSE: 'PAUSE'
-// }
 
 export const playMode = {
   SEQUENCE: 0,

@@ -1,6 +1,6 @@
 <template>
-  <div class="singer">
-    <listview :data="singers" @select="singerSelect"></listview>
+  <div class="singer" ref="singer">
+    <listview :data="singers" @select="singerSelect" ref="list"></listview>
     <router-view></router-view>
   </div>
 </template>
@@ -12,11 +12,13 @@
   import {mapMutations} from 'vuex'
   import * as mutationsTypes from 'store/mutation-types'
   import Listview from 'base/listview/listview'
+  import {playlistMixin} from 'common/js/mixin'
 
   const HOT_NAME = "热门"
   const HOT_LEN = 10
 
   export default {
+    mixins: [playlistMixin],
     data() {
       return {
         singers: []
@@ -28,6 +30,11 @@
       }, 300)
     },
     methods: {
+      handlePlaylist(playlist) {
+        const bottom = playlist.length > 0 ? '60px' : ''
+        this.$refs.singer.style.bottom = bottom
+        this.$refs.list.refresh()
+      },
       ...mapMutations({
         setSinger: mutationsTypes.SET_SINGER
       }),

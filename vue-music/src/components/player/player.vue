@@ -1,5 +1,5 @@
 <template>
-  <div class="player" v-if="playlist.length>0">
+  <div class="player" v-show="playlist.length>0">
     <transition name="normal"
                 @enter="enter"
                 @after-enter="afterEnter"
@@ -17,22 +17,36 @@
           <h1 class="title" v-html="currentSong.name"></h1>
           <h2 class="subtitle" v-html="currentSong.singer"></h2>
         </div>
-        <div class="middle">
-          <div class="middle-l">
+        <div class="middle"
+             @touchstart.prevent="middleTouchStart"
+             @touchmove.prevent="middleTouchMove"
+             @touchend="middleTouchEnd"
+        >
+          <div class="middle-l" ref="middleL">
             <div class="cd-wrapper" ref="cdWrapper">
               <div class="cd" :class="cdCls">
                 <img class="image" :src="currentSong.image">
               </div>
             </div>
             <div class="playing-lyric-wrapper">
-              <div class="playing-lyric"></div>
+              <div class="playing-lyric">{{currentLyricText}}</div>
             </div>
           </div>
+          <scroll class="middle-r" ref="lyricList" :data="currentLyric && currentLyric.lines">
+            <div class="lyric-wrapper">
+              <div v-if="currentLyric">
+                <p ref="lyricLine"
+                   class="text"
+                   :class="{'current': currentLineNum ===index}"
+                   v-for="(line,index) in currentLyric.lines">{{line.txt}}</p>
+              </div>
+            </div>
+          </scroll>
         </div>
         <div class="bottom">
           <div class="dot-wrapper">
-            <span class="dot"></span>
-            <span class="dot"></span>
+            <span class="dot" :class="{'active': currentView === 'cd'}"></span>
+            <span class="dot" :class="{'active': currentView === 'lyric'}"></span>
           </div>
           <div class="progress-wrapper">
             <span class="time time-l">{{format(currentTime)}}</span>
@@ -92,9 +106,12 @@
   import ProgressBar from 'base/progress-bar/progress-bar'
   import ProgressCircle from 'base/progress-circle/progress-circle'
   import {playMode} from 'common/js/config'
-  import {shuffle2} from "common/js/util"
+  import {shuffle2} from 'common/js/util'
+  import Lyric from 'lyric-parser'
+  import Scroll from 'base/scroll/scroll'
 
   const transform = prefixStyle('transform')
+  const transitionDuration = prefixStyle('transitionDuration')
 
   export default {
     data() {
@@ -103,22 +120,34 @@
         songReady: false,
         currentTime: 0,
         duration: 0,
-        radius: 32
+        radius: 32,
+        currentLyric: null,
+        currentLineNum: 0,
+        currentLyricText: '',
+        currentView: 'cd', // 'cd | lyric',
+        touch:{}
       }
     },
+    created() {
+      console.log('player.vue created')
+      this.touch = {}
+    },
     methods: {
-
       prevSong() {//前进和后退，需要能循环切换
         if (!this.songReady) {
           return
         }
-        let index = this.currentIndex - 1
-        if (index === -1) {
-          index = this.playlist.length - 1
-        }
-        this.setCurrentIndex(index)
-        if (!this.playingState) {
-          this.togglePlayingState()
+        if (this.playlist.length === 1) {
+          this.loop()
+        } else {
+          let index = this.currentIndex - 1
+          if (index === -1) {
+            index = this.playlist.length - 1
+          }
+          this.setCurrentIndex(index)
+          if (!this.playingState) {
+            this.togglePlayingState()
+          }
         }
         this.songReady = false
       },
@@ -126,22 +155,32 @@
         if (!this.songReady) {
           return
         }
-        let index = this.currentIndex + 1
-        if (index === this.playlist.length) {
-          index = 0
-        }
-        this.setCurrentIndex(index)
-        if (!this.playingState) {
-          this.togglePlayingState()
+        if (this.playlist.length === 1) {
+          this.loop()
+        } else {
+          let index = this.currentIndex + 1
+          if (index === this.playlist.length) {
+            index = 0
+          }
+          this.setCurrentIndex(index)
+          if (!this.playingState) {
+            this.togglePlayingState()
+          }
         }
         this.songReady = false
       },
       end() {
-        if(this.playMode === playMode.LOOP) {
-          this.$refs.audio.currentTime = 0
-          this.$refs.audio.play()
+        if (this.playMode === playMode.LOOP) {
+          this.loop()
         } else {
           this.nextSong()
+        }
+      },
+      loop() {
+        this.$refs.audio.currentTime = 0
+        this.$refs.audio.play()
+        if(this.currentLyric) {
+          this.currentLyric.seek(0)
         }
       },
       changeMode() {
@@ -151,7 +190,7 @@
         //如果是顺序播放则将playlist改为sequenceList
         //保留当前index,提交index和playlist
         let list = null
-        if(mode === playMode.RANDOM) {
+        if (mode === playMode.RANDOM) {
           list = shuffle2(this.sequenceList)
         } else {
           list = this.sequenceList
@@ -166,9 +205,13 @@
         this.setCurrentIndex(index)
       },
       onProgressUpdate(percent) {
-        this.$refs.audio.currentTime = this.currentSong.duration * percent
+        const currentTime = this.currentSong.duration * percent
+        this.$refs.audio.currentTime = currentTime
         if (!this.playingState) {
           this.togglePlayingState()
+        }
+        if (this.currentLyric) {
+          this.currentLyric.seek(currentTime * 1000)
         }
       },
       updateTime(e) {
@@ -179,14 +222,6 @@
         let seconds = this._padLeftZero(time % 60 | 0)
         return `${minutes}:${seconds}`
       },
-      _padLeftZero(str, n = 2) {
-        let len = str.toString().length
-        while (len < n) {
-          str = '0' + str
-          len++
-        }
-        return str
-      },
       ready() {
         this.songReady = true
       },
@@ -196,7 +231,6 @@
       ...mapMutations({
           setFullScreen: mutationTypes.SET_FULL_SCREEN,
           setPlayingState: mutationTypes.SET_PLAYING_STATE,
-          // switchSong: mutationTypes.SET_CURRENT_INDEX,
           setPlayMode: mutationTypes.SET_PLAY_MODE,
           setPlaylist: mutationTypes.SET_PLAYLIST,
           setCurrentIndex: mutationTypes.SET_CURRENT_INDEX
@@ -204,7 +238,6 @@
       ),
       enter(el, done) {
         const {x, y, scale} = this._getPosAndScale()
-
         let animation = {
           0: {
             transform: `translate3d(${x}px,${y}px,0) scale(${scale})`
@@ -216,7 +249,6 @@
             transform: `translate3d(0,0,0) scale(1)`
           }
         }
-
         animations.registerAnimation({
           name: 'move',
           animation,
@@ -252,6 +284,98 @@
           return
         }
         this.setPlayingState(!this.playingState)
+        if (this.currentLyric) {
+          this.currentLyric.togglePlay()
+        }
+      },
+      getLyric() {
+        this.currentSong.getLyric().then((lyric) => {
+          this.currentLyric = new Lyric(lyric, this.handleLyric)
+          if (this.playingState) {
+            this.currentLyric.play()
+          }
+        }).catch((err) => {
+          this.currentLyric = null
+          this.currentLineNum = 0
+        })
+      },
+      handleLyric({lineNum, txt}) {
+        this.currentLineNum = lineNum
+        if (lineNum > 5) {
+          let lineEl = this.$refs.lyricLine[lineNum - 5]
+          this.$refs.lyricList.scrollToElement(lineEl, 1000)
+        } else {
+          this.$refs.lyricList.scrollTo(0, 0, 1000)
+        }
+        this.currentLyricText = txt
+      },
+      middleTouchStart(e) {
+        this.touch.initialized = true
+        let touch = e.touches[0]
+        this.touch.startX = touch.pageX
+        this.touch.startY = touch.pageY
+      },
+      middleTouchMove(e) {
+        if(!this.touch.initialized) {
+          return
+        }
+        let touch = e.touches[0]
+        let deltaX = touch.pageX - this.touch.startX
+        let deltaY = touch.pageY - this.touch.startY
+        if(Math.abs(deltaY) > Math.abs(deltaX)) {
+          return
+        }
+        /*let offsetWidth = 0
+        if(this.currentView === 'cd') {
+          if(deltaX < 0) {
+            offsetWidth = Math.max(-window.innerWidth,deltaX)
+          } else {
+            offsetWidth = 0
+          }
+        } else {
+          if(deltaX > 0) {
+            offsetWidth = Math.min(0, -window.innerWidth + deltaX)
+          } else {
+            offsetWidth = -window.innerWidth
+          }
+        }*/
+        const left = this.currentView === 'cd' ? 0 : -window.innerWidth
+        const offsetWidth = Math.min(0, Math.max(-window.innerWidth, left + deltaX))
+        this.touch.percent = Math.abs(offsetWidth) / window.innerWidth
+        this.$refs.lyricList.$el.style[transform] = `translate3d(${offsetWidth}px, 0 ,0)`
+        this.$refs.lyricList.$el.style[transitionDuration] = 0
+        this.$refs.middleL.style.opacity = 1 - this.touch.percent
+        this.$refs.middleL.style[transitionDuration] = 0
+      },
+      middleTouchEnd(e) {
+        let percent = this.touch.percent
+        let offsetWidth = this.touch.offsetWidth
+        let opacity = 1
+        if(this.currentView === 'cd') {
+          if(percent > 0.1) {
+            offsetWidth = -window.innerWidth
+            opacity = 0
+            this.currentView = 'lyric'
+          } else {
+            offsetWidth = 0
+            opacity = 1
+          }
+        } else {
+          if(percent < 0.9) {
+            offsetWidth = 0
+            this.currentView = 'cd'
+            opacity = 1
+          } else {
+            offsetWidth = -window.innerWidth
+            opacity = 0
+          }
+        }
+        let time = 300
+        this.$refs.lyricList.$el.style[transform] = `translate3d(${offsetWidth}px, 0 ,0)`
+        this.$refs.lyricList.$el.style[transitionDuration] = `${300}ms`
+        this.$refs.middleL.style.opacity = opacity
+        this.$refs.middleL.style[transitionDuration] = `${300}ms`
+        this.touch.initialized = false
       },
       _getPosAndScale() {
         const targetWidth = 40
@@ -263,17 +387,39 @@
         const x = -(window.innerWidth / 2 - paddingLeft)
         const y = window.innerHeight - paddingTop - width / 2 - paddingBottom
         return {x, y, scale}
+      },
+      _padLeftZero(str, n = 2) {
+        let len = str.toString().length
+        while (len < n) {
+          str = '0' + str
+          len++
+        }
+        return str
       }
     },
     watch: {
       currentSong(newSong, oldSong) {
-        if(oldSong && newSong.id === oldSong.id) {
+        if (oldSong && newSong.id === oldSong.id) {
           return
         }
-        this.$nextTick(() => {
+        console.log(newSong)
+        if (this.currentLyric) {
+          // 切换歌曲时，要停止之前的歌词播放器
+          this.currentLyric.stop()
+          this.currentTime = 0
+          this.playingLyric = ''
+          this.currentLineNum = 0
+        }
+        setTimeout(() => {
+          // 由于QQ音乐的限制，目前只有一首歌可以播放
+          // 所以需要手动切换src，否则无法达到切换歌曲重新播放的效果
           this.$refs.audio.src = newSong.url
           this.$refs.audio.play()
-        })
+          this.getLyric() // 先播放音乐，再获取歌词，不要阻塞音乐的加载
+        }, 1000)
+        // 由$nextTick变为setTimeout原因是： 切换歌曲时，歌词获取需要时间
+        // this.$nextTick(() => {
+        // })
       },
       playingState(newPlayingState) {
         this.$nextTick(() => {
@@ -313,7 +459,8 @@
     },
     components: {
       ProgressBar,
-      ProgressCircle
+      ProgressCircle,
+      Scroll
     }
   }
 </script>
