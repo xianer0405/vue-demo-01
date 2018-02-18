@@ -1,6 +1,6 @@
 <template>
   <transition name="slide">
-    <music-list :songs="songs" :title="title" :bg-image="bgImage"></music-list>
+    <music-list :rank="rank" :songs="songs" :title="title" :bg-image="bgImage"></music-list>
   </transition>
 </template>
 
@@ -15,27 +15,29 @@
     data() {
       return {
         name: "top-list",
-        songs: []
+        songs: [],
+        rank: true
       }
     },
     computed: {
-      ...mapGetters([
-        'rank'
-      ]),
+      ...mapGetters({
+        rankInfo: 'rank'
+      }),
       title() {
-        return this.rank.topTitle
+        console.log(this.rankInfo)
+        return this.rankInfo.topTitle
       },
       bgImage() {
-        return this.rank.picUrl
+        return this.rankInfo.picUrl
       }
     },
     methods: {
       _getTopList() {
-        if (!this.rank.id) {
+        if (!this.rankInfo.id) {
           this.$router.push('/rank')
           return
         }
-        getTopList(this.rank.id).then((res) => {
+        getTopList(this.rankInfo.id).then((res) => {
           console.log(res)
           if (res.code === ERR_OK) {
             this._normalizeSingerList(res.songlist)
