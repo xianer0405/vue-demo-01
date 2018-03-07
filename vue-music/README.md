@@ -23,3 +23,5 @@ the [guide](http://vuejs-templates.github.io/webpack/)
 and [docs for vue-loader](http://vuejs.github.io/vue-loader).
 
 test modify
+
+test modify after git add
