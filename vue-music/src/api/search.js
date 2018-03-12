@@ -1,5 +1,5 @@
 import jsonp from 'common/js/jsonp'
-import {commonParams, options} from 'common/js/config'
+import {commonParams, options} from 'api/config'
 
 /* 优先使用const关键字生命变量 */
 export function getHotKey() {

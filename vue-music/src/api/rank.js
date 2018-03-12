@@ -1,5 +1,5 @@
 import jsonp from 'common/js/jsonp'
-import {commonParams, options} from 'common/js/config'
+import {commonParams, options} from 'api/config'
 // import axios from 'axios'
 
 // https://c.y.qq.com/v8/fcg-bin/fcg_myqq_toplist.fcg

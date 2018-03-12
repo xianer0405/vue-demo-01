@@ -42,7 +42,7 @@
   import Loading from 'base/loading/loading'
   import Slider from 'base/slider/slider'
   import {getRecommend, getDiscList} from "api/recommend"
-  import {ERR_OK} from "common/js/config"
+  import {ERR_OK} from "api/config"
   import Scroll from 'base/scroll/scroll'
   import {playlistMixin} from 'common/js/mixin'
   import {mapMutations} from 'vuex'

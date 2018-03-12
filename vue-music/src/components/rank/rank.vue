@@ -24,7 +24,7 @@
 
 <script type="text/ecmascript-6">
   import {getRank} from 'api/rank'
-  import {ERR_OK} from 'common/js/config'
+  import {ERR_OK} from 'api/config'
   import Scroll from 'base/scroll/scroll'
   import Loading from 'base/loading/loading'
   import {playlistMixin} from "common/js/mixin";

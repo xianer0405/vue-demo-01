@@ -43,7 +43,7 @@
   import SearchBox from 'base/search-box/search-box'
   import Suggest from 'components/suggest/suggest'
   import {getHotKey} from 'api/search'
-  import {ERR_OK} from "common/js/config"
+  import {ERR_OK} from "api/config"
   import {delSearchItem} from 'common/js/cache'
   import SearchList from 'base/search-list/search-list'
   import Confirm from 'base/confirm/confirm'

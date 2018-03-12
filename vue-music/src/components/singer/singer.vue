@@ -7,7 +7,7 @@
 
 <script type="text/ecmascript-6">
   import {getSingers} from 'api/singer'
-  import {ERR_OK} from "common/js/config"
+  import {ERR_OK} from "api/config"
   import Singer from 'common/js/singer'
   import {mapMutations} from 'vuex'
   import * as mutationsTypes from 'store/mutation-types'
