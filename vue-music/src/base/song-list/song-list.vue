@@ -19,7 +19,9 @@
     props: {
       songs: {
         type: Array,
-        default: []
+        default: () => {
+          return []
+        }
       },
       rank: {
         type: Boolean,
@@ -33,7 +35,6 @@
     },
     methods: {
       getRankCls(index) {
-        console.log(this.rank)
         return index <= 2 ? `icon icon${index}` : ''
       },
       getRankText(index) {
@@ -45,9 +46,6 @@
       getDesc(song) {
         return `${song.singer}·${song.album}`
       }
-    },
-    created() {
-      console.log(this.songs)
     }
   }
 </script>

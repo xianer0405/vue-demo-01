@@ -27,3 +27,19 @@ export function shuffle2(arr) {
   }
   return _arr
 }
+
+/*
+函数柯里化
+闭包
+*********************/
+export function debounce(func, delay) {
+  let timer
+  return function (...args) {
+    if (timer) {
+      clearTimeout(timer)
+    }
+    timer = setTimeout(() => {
+      func.apply(this, args)
+    }, delay)
+  }
+}

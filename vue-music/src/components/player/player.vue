@@ -57,7 +57,7 @@
           </div>
           <div class="operators">
             <div class="icon i-left">
-              <i :class="modeIcon" @click="changeMode"></i>
+              <i :class="iconMode" @click="changeMode"></i>
             </div>
             <div class="icon i-left" :class="disableCls">
               <i @click.stop="prevSong" class="icon-prev"></i>
@@ -89,31 +89,33 @@
             <i @click.stop="togglePlayingState" class="icon-mini" :class="miniIcon"></i>
           </progress-circle>
         </div>
-        <div class="control">
+        <div class="control" @click.stop="showPlaylist">
           <i class="icon-playlist"></i>
         </div>
       </div>
     </transition>
     <audio ref="audio" :src="currentSong.url" @ended="end" @timeupdate="updateTime" @canplay="ready" @error="error"></audio>
+    <playlist ref="playlist"></playlist>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
-  import {mapGetters, mapMutations} from 'vuex'
-  import * as mutationTypes from '@/store/mutation-types'
+  import {mapGetters, mapMutations, mapActions} from 'vuex'
+  import { SET_FULL_SCREEN } from '@/store/mutation-types'
   import animations from 'create-keyframe-animation'
   import {prefixStyle} from 'common/js/dom'
   import ProgressBar from 'base/progress-bar/progress-bar'
   import ProgressCircle from 'base/progress-circle/progress-circle'
   import {playMode} from 'common/js/config'
-  import {shuffle2} from 'common/js/util'
   import Lyric from 'lyric-parser'
   import Scroll from 'base/scroll/scroll'
-
+  import Playlist from 'components/playlist/playlist'
+  import {playerMixin} from 'common/js/mixin'
   const transform = prefixStyle('transform')
   const transitionDuration = prefixStyle('transitionDuration')
 
   export default {
+    mixins: [playerMixin],
     data() {
       return {
         name: "player.vue",
@@ -129,10 +131,12 @@
       }
     },
     created() {
-      console.log('player.vue created')
       this.touch = {}
     },
     methods: {
+      showPlaylist() {
+        this.$refs.playlist.show()
+      },
       prevSong() {//前进和后退，需要能循环切换
         if (!this.songReady) {
           return
@@ -183,27 +187,6 @@
           this.currentLyric.seek(0)
         }
       },
-      changeMode() {
-        let mode = (this.playMode + 1) % 3
-        this.setPlayMode(mode)
-        //如果是随机播放则shuffle seqlist->playlist
-        //如果是顺序播放则将playlist改为sequenceList
-        //保留当前index,提交index和playlist
-        let list = null
-        if (mode === playMode.RANDOM) {
-          list = shuffle2(this.sequenceList)
-        } else {
-          list = this.sequenceList
-        }
-        this.resetCurrentIndex(list)
-        this.setPlaylist(list)
-      },
-      resetCurrentIndex(list) {
-        let index = list.findIndex((item) => {
-          return item.id === this.currentSong.id
-        })
-        this.setCurrentIndex(index)
-      },
       onProgressUpdate(percent) {
         const currentTime = this.currentSong.duration * percent
         this.$refs.audio.currentTime = currentTime
@@ -224,18 +207,11 @@
       },
       ready() {
         this.songReady = true
+        this.savePlayHistory(this.currentSong)
       },
       error() {
         this.songReady = true
       },
-      ...mapMutations({
-          setFullScreen: mutationTypes.SET_FULL_SCREEN,
-          setPlayingState: mutationTypes.SET_PLAYING_STATE,
-          setPlayMode: mutationTypes.SET_PLAY_MODE,
-          setPlaylist: mutationTypes.SET_PLAYLIST,
-          setCurrentIndex: mutationTypes.SET_CURRENT_INDEX
-        }
-      ),
       enter(el, done) {
         const {x, y, scale} = this._getPosAndScale()
         let animation = {
@@ -395,14 +371,23 @@
           len++
         }
         return str
-      }
+      },
+      ...mapMutations({
+        setFullScreen: SET_FULL_SCREEN
+      }),
+      ...mapActions([
+        'savePlayHistory'
+      ])
     },
     watch: {
       currentSong(newSong, oldSong) {
+        // 当清空播放列表时，是一个空对象{}
+        if(!newSong.id) {
+          return
+        }
         if (oldSong && newSong.id === oldSong.id) {
           return
         }
-        console.log(newSong)
         if (this.currentLyric) {
           // 切换歌曲时，要停止之前的歌词播放器
           this.currentLyric.stop()
@@ -441,26 +426,20 @@
       miniIcon() {
         return this.playingState ? 'icon-pause-mini' : 'icon-play-mini'
       },
-      modeIcon() {
-        return this.playMode === playMode.SEQUENCE ? 'icon-sequence' : this.playMode === playMode.LOOP ? 'icon-loop' : 'icon-random'
-      },
       percent() {
         return this.currentTime / this.currentSong.duration
       },
       ...mapGetters([
         'fullScreen',
         'currentIndex',
-        'currentSong',
-        'playlist',
-        'sequenceList',
-        'playingState',
-        'playMode'
-      ]),
+        'currentSong'
+      ])
     },
     components: {
       ProgressBar,
       ProgressCircle,
-      Scroll
+      Scroll,
+      Playlist
     }
   }
 </script>
