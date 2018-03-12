@@ -16,12 +16,12 @@
             <li :key="item.id" ref="listItem" @click="selectItem(item, index)" class="item" v-for="(item, index) in sequenceList">
               <i class="current" :class="getCurrIcon(item)"></i>
               <span class="text">{{item.name}}</span>
-              <span class="like">
-              <i class="icon-not-favorite"></i>
-            </span>
+              <span class="like" @click.stop="toggleFavorite(item)">
+                <i :class="getFavoriteIcon(item)"></i>
+              </span>
               <span class="delete" @click.stop="deleteSong(item)">
-              <i class="icon-delete"></i>
-            </span>
+                <i class="icon-delete"></i>
+              </span>
             </li>
           </transition-group>
         </scroll>
@@ -44,13 +44,13 @@
 <script type="text/ecmascript-6">
   import {mapGetters, mapActions} from 'vuex'
   import Scroll from 'base/scroll/scroll'
-  import {playerMixin} from 'common/js/mixin'
+  import {playerMixin, favoriteMixin} from 'common/js/mixin'
   import {playMode} from 'common/js/config'
   import Confirm from 'base/confirm/confirm'
   import AddSong from 'components/add-song/add-song'
 
   export default {
-    mixins: [playerMixin],
+    mixins: [playerMixin, favoriteMixin],
     data() {
       return {
         showFlag: false,
@@ -113,7 +113,7 @@
         let currIndex = this.sequenceList.findIndex((item) => {
           return item.id === this.currentSong.id
         })
-        if(currIndex == -1) {
+        if (currIndex == -1) {
           return
         }
         this.$refs.listContent.scrollToElement(this.$refs.listItem[currIndex], 200)
@@ -128,10 +128,10 @@
     },
     watch: {
       currentSong(newSong, oldSong) {
-        if(!newSong) {
+        if (!newSong) {
           return
         }
-        if(!this.showFlag || newSong.id === oldSong.id) {
+        if (!this.showFlag || newSong.id === oldSong.id) {
           return
         }
         this.scrollToCurrentSong()
