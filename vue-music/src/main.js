@@ -5,8 +5,12 @@ import router from './router'
 import fastclick from 'fastclick'
 import VueLazyload from 'vue-lazyload'
 import store from './store'
+import VConsole from 'vconsole'
 
 import 'common/stylus/index.styl'
+
+// eslint-disable-next-line no-unused-vars
+var vConsole = new VConsole()
 
 Vue.use(VueLazyload, {
   loading: require('common/image/default.png')

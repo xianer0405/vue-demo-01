@@ -13,6 +13,7 @@
   import * as mutationsTypes from 'store/mutation-types'
   import Listview from 'base/listview/listview'
   import {playlistMixin} from 'common/js/mixin'
+  import VConsole2 from 'vconsole'
 
   const HOT_NAME = "热门"
   const HOT_LEN = 10
@@ -39,6 +40,11 @@
         setSinger: mutationsTypes.SET_SINGER
       }),
       singerSelect(singer) {
+        // console.log(singer)
+        // console.info('console.info')
+        // console.debug('console.debug')
+        // console.warn('console.warn')
+        // console.error('console.error')
         this.setSinger(singer)
         this.$router.push(`/singer/${singer.id}`)
       },

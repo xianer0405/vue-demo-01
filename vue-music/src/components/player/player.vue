@@ -94,7 +94,11 @@
         </div>
       </div>
     </transition>
-    <audio ref="audio" :src="currentSong.url" @ended="end" @timeupdate="updateTime" @canplay="ready" @error="error"></audio>
+    <audio ref="audio"
+           @ended="end"
+           @timeupdate="updateTime"
+           @play="ready"
+           @error="error"></audio>
     <playlist ref="playlist"></playlist>
   </div>
 </template>
@@ -205,7 +209,7 @@
         let seconds = this._padLeftZero(time % 60 | 0)
         return `${minutes}:${seconds}`
       },
-      ready() {
+      ready(e) {
         this.songReady = true
         this.savePlayHistory(this.currentSong)
       },
@@ -266,6 +270,12 @@
       },
       getLyric() {
         this.currentSong.getLyric().then((lyric) => {
+          // 创建了多个Lyric对象，并播放
+          // 如何避免创建多个？
+          // 没能想到
+          if (this.currentSong.lyric !== lyric) {
+            return
+          }
           this.currentLyric = new Lyric(lyric, this.handleLyric)
           if (this.playingState) {
             this.currentLyric.play()

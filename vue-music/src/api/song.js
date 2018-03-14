@@ -3,23 +3,24 @@ import {commonParams, options} from 'api/config'
 import { getUid } from 'common/js/uid'
 import jsonp from 'common/js/jsonp'
 
-export function getLyric(id) {
-  const url = '/api/getLyric'
+const debug = process.env.NODE_ENV !== 'production'
+
+export function getLyric(mid) {
+  const url = debug ? '/api/getLyric' : 'http://ustbhuangyi.com/music/api/lyric'
 
   const data = Object.assign({}, commonParams, {
+    songmid: mid,
     platform: 'yqq',
     hostUin: 0,
-    loginUin: 0,
     needNewCode: 0,
-    format: 'json',
-    nobase64: 1,
-    musicid: id
+    categoryId: 10000000,
+    pcachetime: +new Date(),
+    format: 'json'
   })
 
   return axios.get(url, {
     params: data
   }).then((res) => {
-    console.log(res.data)
     return Promise.resolve(res.data)
   }).catch((err) => {
     console.log(err)
